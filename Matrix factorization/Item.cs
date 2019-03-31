@@ -13,6 +13,7 @@ namespace Matrix_factorization
         public Dictionary<double, Item> ConnectedItem;
         public Item()
         {
+            isVisited = false;
             Feature = new Feature();
             ConnectedItem = new Dictionary<double, Item>(){
                 { 1.0, null },
@@ -25,6 +26,7 @@ namespace Matrix_factorization
                 { 0.3, null },
                 { 0.2, null },
                 { 0.1, null },
+                { 0.0, null },
             };
         }
     }
