@@ -20,12 +20,12 @@ namespace Matrix_factorization
         private const double THREE_TENTHS   = 0.3;
         private const double TWO_TENTHS     = 0.2;
         private const double ONE_TENTHS     = 0.1;
-        private static int size             = 20;
+        private static int size             = 5;
         private static int increment        = 1;
         private static double lessThan50    = 1;
         private static Random rnd           = new Random();
 
-        private static ValueTuple<Item, double> mostSimilarItem;
+        private static ValueTuple<Item, double> mostSimilarItemToParentNode;
         private static ValueTuple<Item, double> prevItem;
         private static Dictionary<double, Dictionary<string, Item>> SimilarityTable 
                                             = new Dictionary<double, Dictionary<string, Item>>();
@@ -59,17 +59,16 @@ namespace Matrix_factorization
         {
             for (int i = size; i > 0; i--)
             {
-                mostSimilarItem = new ValueTuple<Item, double>(null, 0);
+                mostSimilarItemToParentNode = new ValueTuple<Item, double>(null, 0);
                 prevItem = new ValueTuple<Item, double>(null, 0);
                 Item newItem = new Item();
                 maxHelper = 1;
                 MakeItem(ref newItem);
                 Console.WriteLine(" ---- New item is has been created : " + newItem.Name);
-                var testResult = Similarity(item, newItem);
-                mostSimilarItem = (item, testResult);
-                AddNodes(item, newItem, testResult);
+                //mostSimilarItemToParentNode = (item, item.value);
+                var parentNode = AddNodes(item, newItem);
                 Console.WriteLine(" Finished with item : " + newItem.Name);
-                Console.WriteLine(" Parent is : " + mostSimilarItem.Item1.Name);
+                Console.WriteLine(" Parent is : " + parentNode.Name);
                 Console.WriteLine();
                 if (maxLevel < maxHelper)
                 {
@@ -83,61 +82,55 @@ namespace Matrix_factorization
         private static void MakeItem(ref Item newItem)
         {
             newItem.Name = "Movie" + increment;
-            newItem.Feature.Preferences.Add("Drama", rnd.Next(1, 100));
-            newItem.Feature.Preferences.Add("Action", rnd.Next(1, 100));
-            newItem.Feature.Preferences.Add("Comedy", rnd.Next(1, 100));
+            newItem.Feature.Preferences.Add("Drama", rnd.Next(1, 10));
+            newItem.Feature.Preferences.Add("Action", rnd.Next(1, 10));
+            newItem.Feature.Preferences.Add("Comedy", rnd.Next(1, 10));
             increment++;
         }
 
-        private static void AddNodes(Item item, Item newItem, double similarityValue)
+        private static Item AddNodes(Item item, Item newItem)
         {
-            foreach (var vItem in item.ConnectedItem.Values)
-            {
-                mostSimilarItem = (item, similarityValue);
-                if (vItem == null) { continue; }
-                var similarityResult = Similarity(vItem, newItem);
-                if (similarityResult > prevItem.Item2 || prevItem.Item1 == mostSimilarItem.Item1)
-                {
-                    prevItem = (vItem, similarityResult);
-                }
-                if (similarityResult < FIVE_TENTHS && lessThan50> similarityResult) {
-                    lessThan50 = similarityResult;// for debuging remove later
-                }
-                if ( similarityResult > mostSimilarItem.Item2)
-                {
-                    Console.WriteLine(vItem.Name + " Yes is more similar than "
-                        + mostSimilarItem.Item1.Name
-                        + " and the next test will happen with the child of "
-                        + vItem.Name + " if there is ");
-                    AddNodes(vItem, newItem, similarityResult);
-                    return;
-                }
-                else
-                {
-                    Console.WriteLine(mostSimilarItem.Item1.Name +" the parent is most similar item to " +newItem.Name);
-                }
+            if (item.MostSimiler == null) {
+                item.value = Similarity(item, newItem);
+                EnsureEmptyNode(item, newItem);
+                return item;
             }
-            EnsureEmptyNode(mostSimilarItem.Item1, newItem);
+            newItem.value = Similarity(item, newItem);
+            if ( item.value > newItem.value)
+            {
+            Console.WriteLine(item.MostSimiler.Name + " Yes is still more similar than "
+                + newItem.Name);
+                EnsureEmptyNode(item.MostSimiler, newItem);
+                return item.MostSimiler;
+            }
+            else
+            {
+                Console.WriteLine(newItem.Name +" is more similar item to "+ item.Name
+                    + " than " + item.MostSimiler.Name + " and will be added as child of " + item.Name );
+                item.value = newItem.value;
+                EnsureEmptyNode(item, newItem);
+                return item;
+            }
         }
 
         private static void EnsureEmptyNode(Item item, Item newItem)
         {
-            var calculateIndex = Math.Floor(mostSimilarItem.Item2 * Math.Pow(10, 1)) / Math.Pow(10, 1);
+            var calculateIndex = Math.Floor(mostSimilarItemToParentNode.Item2 * Math.Pow(10, 1)) / Math.Pow(10, 1);
 
-            if (mostSimilarItem.Item1.ConnectedItem[calculateIndex] == null)
+            if (item.MostSimiler == null)
             {
                 maxHelper++;
-                SimilarityTable[calculateIndex].Add(newItem.Name, newItem);
-                mostSimilarItem.Item1.ConnectedItem[calculateIndex] = newItem;
+                //SimilarityTable[calculateIndex].Add(newItem.Name, newItem);
+                item.MostSimiler = newItem;
             }
             else
             {
                 maxHelper+=2;
-                SimilarityTable[calculateIndex].Add(newItem.Name, newItem);
+                //SimilarityTable[calculateIndex].Add(newItem.Name, newItem);
                 //mostSimilarItem.Item1.ConnectedItem[calculateIndex]
                     //.ConnectedItem[Math.Floor(prevItem.Item2 * Math.Pow(10, 1)) / Math.Pow(10, 1)] = newItem;
-                newItem.ConnectedItem[Math.Floor(prevItem.Item2* Math.Pow(10, 1)) / Math.Pow(10, 1)] = mostSimilarItem.Item1.ConnectedItem[calculateIndex];
-                mostSimilarItem.Item1.ConnectedItem[calculateIndex] = newItem;
+                newItem.MostSimiler = item.MostSimiler;
+                item.MostSimiler = newItem;
             }
         }
 
